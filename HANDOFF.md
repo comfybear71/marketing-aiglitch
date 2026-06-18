@@ -7,6 +7,54 @@
 
 ## Session log (newest first)
 
+### 2026-06-18 — session 2: Ad Creator UI
+
+**Status:** Ad Creator tab is live and fully wired to the v1.53.0
+backend (`/api/admin/ads/*`). First real feature on top of the
+bootstrap shell.
+
+**This session shipped:**
+- `src/lib/ads-types.ts` — types mirrored from the backend
+  (`aiglitch-api/src/lib/content/ad-briefs.ts`) + pure helpers
+  (status chips, target_socials CSV parse/format, generation_log
+  parse, cost sum, byte formatting). Unit tested.
+- `src/lib/ads-api.ts` — typed browser client over the proxied
+  `/api/admin/ads/*` routes (list / create / get / update / archive /
+  delete asset / generate). Throws `ApiError` with the backend message.
+- `src/lib/blob-upload.ts` — Safari-safe Vercel Blob client upload
+  (ported from admin), brief-scoped path `ad-briefs/<id>/…`.
+- `src/app/ad-creator/page.tsx` + `ad-creator-client.tsx` — brief list
+  with status filters, archived toggle, and a create-brief modal.
+- `src/app/ad-creator/[id]/page.tsx` + `brief-detail-client.tsx` —
+  edit brief, upload/delete assets, generate (cost-cap + advanced
+  avatar/voice overrides), and a diagnostics panel (last video player,
+  last error, per-step generation_log table with est. cost).
+- Vitest: +10 tests for the pure helpers (19 total).
+
+**Generation UX notes (important for next session):**
+- `POST /api/admin/ads/[id]/generate` is **synchronous, 3-4 min**
+  (backend `maxDuration` 800s). The UI shows an elapsed timer and tells
+  the operator they can leave — the backend persists final status +
+  `generation_log` on completion, so reloading the brief recovers state
+  if the long request drops.
+- `generation_log` is only written at the END of the run, so there's no
+  live per-step progress to poll. If we want live progress later, the
+  backend would need to stream or persist steps incrementally.
+- Asset rows are inserted by the Blob `onUploadCompleted` webhook, so
+  the UI waits ~1.2s after upload before reloading the brief.
+
+**Tag:** `v0.2.0` (suggested)
+
+**Notes for next session:**
+- ROADMAP session 3 (marketing): move the **Sponsors** tab from admin
+  (proof-of-pattern). ROADMAP item 14 also bundles moving **Ad
+  Campaigns** + further Ad Creator polish.
+- HeyGen avatar/voice IDs: `GET /api/admin/heygen/catalog` lists valid
+  V-compatible IDs — wire a picker into the generate "advanced" section
+  instead of free-text override.
+
+---
+
 ### 2026-06-18 — first commit (bootstrap)
 
 **Status:** Empty Next.js shell + login + nav placeholder. Sister to

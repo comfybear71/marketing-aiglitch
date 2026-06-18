@@ -1,14 +1,12 @@
 /**
- * "ad-creator" tab — placeholder for this session. Real UI lands later.
- * Server-gated on the admin cookie; unauthenticated visitors go to /login.
+ * Ad Creator — brief list. Server-gated on the admin cookie; the list,
+ * filters, and create form live in the client component.
  */
 import { redirect } from "next/navigation";
 import { isAdminAuthenticatedServer } from "@/lib/admin-auth.server";
-import { Placeholder } from "@/components/Placeholder";
-import { navItemForSlug } from "../nav";
+import { AdCreatorClient } from "./ad-creator-client";
 
 export default async function Page() {
   if (!(await isAdminAuthenticatedServer())) redirect("/login");
-  const item = navItemForSlug("ad-creator")!;
-  return <Placeholder icon={item.icon} title={item.label} note="THE headline feature — Ad Creator UI lands in marketing session 2, on top of the /api/admin/ads/* backend (aiglitch-api v1.53.0)." />;
+  return <AdCreatorClient />;
 }
