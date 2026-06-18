@@ -1,0 +1,33 @@
+name: CI
+
+# Vercel auto-deploys on push to master. This workflow is the quality
+# gate that runs alongside it: typecheck, unit tests (Vitest), and a
+# production build smoke test.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Build (generates next-env.d.ts + .next/types)
+        run: npm run build
+
+      - name: Type check
+        run: npm run typecheck
