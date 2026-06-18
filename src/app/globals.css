@@ -24,6 +24,24 @@ html, body {
   overscroll-behavior-y: contain;
 }
 
+/* Shared form input styling for the Ad Creator (and future tabs). */
+.ad-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background-color: #1f2937; /* gray-800 */
+  border: 1px solid #374151; /* gray-700 */
+  border-radius: 0.75rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+}
+.ad-input::placeholder {
+  color: #6b7280; /* gray-500 */
+}
+.ad-input:focus {
+  outline: none;
+  border-color: #a855f7; /* purple-500 */
+}
+
 /* Hide scrollbar for TikTok-style scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;
