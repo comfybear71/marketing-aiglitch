@@ -18,16 +18,6 @@ interface CommunityEvent {
   created_at: string;
 }
 
-interface CircuitBreakerStatus {
-  providers: Record<string, { callsPerMinute: number; maxCallsPerMinute: number; tripped: boolean }>;
-  hourlySpendUsd: number;
-  maxHourlySpendUsd: number;
-  dailySpendUsd: number;
-  maxDailySpendUsd: number;
-  hourlyTripped: boolean;
-  dailyTripped: boolean;
-}
-
 const EVENT_TYPES = [
   { value: "drama", label: "Drama", icon: "\uD83C\uDFAD" },
   { value: "election", label: "Election", icon: "\uD83D\uDDF3\uFE0F" },
@@ -39,9 +29,6 @@ const EVENT_TYPES = [
 export default function EventsPage() {
   const authenticated = true; // server-gated by the marketing shell
   const [events, setEvents] = useState<CommunityEvent[]>([]);
-  const [circuitBreaker, setCB] = useState<CircuitBreakerStatus | null>(null);
-  const [personaCosts, setPersonaCosts] = useState<{ personaId: string; provider: string; totalUsd: number; callCount: number }[]>([]);
-  const [dailySpend, setDailySpend] = useState<{ date: string; totalUsd: number; callCount: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
 
@@ -57,14 +44,8 @@ export default function EventsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [eventsRes, statsRes] = await Promise.all([
-        fetch("/api/admin/events").then(r => r.json()),
-        fetch("/api/admin/stats").then(r => r.json()),
-      ]);
+      const eventsRes = await fetch("/api/admin/events").then(r => r.json());
       if (eventsRes.events) setEvents(eventsRes.events);
-      if (statsRes.aiCosts?.circuitBreaker) setCB(statsRes.aiCosts.circuitBreaker);
-      if (statsRes.aiCosts?.personaBreakdown) setPersonaCosts(statsRes.aiCosts.personaBreakdown);
-      if (statsRes.aiCosts?.dailySpend) setDailySpend(statsRes.aiCosts.dailySpend);
     } catch (err) {
       console.error("Failed to fetch events data:", err);
     } finally {
@@ -145,7 +126,7 @@ export default function EventsPage() {
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="text-4xl mb-3">{"\uD83C\uDFAD"}</div>
-          <p className="text-gray-400 text-sm">Loading events & monitoring...</p>
+          <p className="text-gray-400 text-sm">Loading events...</p>
         </div>
       </div>
     );
@@ -161,10 +142,10 @@ export default function EventsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-            Community Events & Monitoring
+            Community Events
           </h2>
           <p className="text-gray-400 text-xs sm:text-sm mt-1">
-            Meatbag-voted events, circuit breaker status, and AI cost tracking
+            Meatbag-voted events. Create one, gather votes, then trigger it.
           </p>
         </div>
         <button
@@ -174,89 +155,6 @@ export default function EventsPage() {
           {showForm ? "Cancel" : "+ New Event"}
         </button>
       </div>
-
-      {/* ── Circuit Breaker Status ────────────────────────── */}
-      {circuitBreaker && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3">{"\u26A1"} Circuit Breaker Status</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-            <div className={`rounded-lg p-3 border ${circuitBreaker.hourlyTripped ? "bg-red-900/30 border-red-700" : "bg-green-900/20 border-green-800"}`}>
-              <div className="text-xs text-gray-400">Hourly Spend</div>
-              <div className="text-lg font-bold text-white">${circuitBreaker.hourlySpendUsd.toFixed(2)}</div>
-              <div className="text-xs text-gray-500">/ ${circuitBreaker.maxHourlySpendUsd}</div>
-              {circuitBreaker.hourlyTripped && <div className="text-xs text-red-400 font-bold mt-1">TRIPPED</div>}
-            </div>
-            <div className={`rounded-lg p-3 border ${circuitBreaker.dailyTripped ? "bg-red-900/30 border-red-700" : "bg-green-900/20 border-green-800"}`}>
-              <div className="text-xs text-gray-400">Daily Spend</div>
-              <div className="text-lg font-bold text-white">${circuitBreaker.dailySpendUsd.toFixed(2)}</div>
-              <div className="text-xs text-gray-500">/ ${circuitBreaker.maxDailySpendUsd}</div>
-              {circuitBreaker.dailyTripped && <div className="text-xs text-red-400 font-bold mt-1">TRIPPED</div>}
-            </div>
-            {(Object.entries(circuitBreaker.providers ?? {}) as [string, { callsPerMinute: number; maxCallsPerMinute: number; tripped: boolean }][]).map(([provider, data]) => (
-              <div key={provider} className={`rounded-lg p-3 border ${data.tripped ? "bg-red-900/30 border-red-700" : "bg-gray-800/50 border-gray-700"}`}>
-                <div className="text-xs text-gray-400 truncate">{provider}</div>
-                <div className="text-sm font-bold text-white">{data.callsPerMinute} / {data.maxCallsPerMinute}</div>
-                <div className="text-xs text-gray-500">calls/min</div>
-                {data.tripped && <div className="text-xs text-red-400 font-bold mt-1">TRIPPED</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Daily Spend Chart ─────────────────────────────── */}
-      {dailySpend.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3">{"\uD83D\uDCB0"} Daily AI Spend (7 days)</h3>
-          <div className="space-y-2">
-            {dailySpend.map(day => {
-              const maxSpend = Math.max(...dailySpend.map(d => Number(d.totalUsd)), 1);
-              const pct = (Number(day.totalUsd) / maxSpend) * 100;
-              return (
-                <div key={day.date} className="flex items-center gap-3">
-                  <div className="text-xs text-gray-400 w-20 shrink-0">{new Date(day.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
-                  <div className="flex-1 bg-gray-800 rounded-full h-5 overflow-hidden">
-                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="text-xs text-gray-300 w-20 text-right">${Number(day.totalUsd).toFixed(2)} ({day.callCount})</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Top Persona Costs ─────────────────────────────── */}
-      {personaCosts.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3">{"\uD83E\uDD16"} Top Persona AI Spend (7 days)</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-gray-500 border-b border-gray-800">
-                  <th className="text-left py-2 pr-4">Persona</th>
-                  <th className="text-left py-2 pr-4">Provider</th>
-                  <th className="text-right py-2 pr-4">Cost</th>
-                  <th className="text-right py-2">Calls</th>
-                </tr>
-              </thead>
-              <tbody>
-                {personaCosts.slice(0, 15).map((row, i) => (
-                  <tr key={i} className="border-b border-gray-800/50">
-                    <td className="py-1.5 pr-4 text-gray-300 font-mono">{row.personaId}</td>
-                    <td className="py-1.5 pr-4 text-gray-400">{row.provider}</td>
-                    <td className="py-1.5 pr-4 text-right text-green-400">${Number(row.totalUsd).toFixed(4)}</td>
-                    <td className="py-1.5 text-right text-gray-400">{row.callCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {personaCosts.length === 0 && (
-            <p className="text-gray-500 text-xs text-center py-4">No per-persona cost data yet. Costs will appear once persona_id is passed to trackCost().</p>
-          )}
-        </div>
-      )}
 
       {/* ── New Event Form ────────────────────────────────── */}
       {showForm && (

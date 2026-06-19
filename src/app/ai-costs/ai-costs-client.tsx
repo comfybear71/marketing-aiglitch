@@ -81,6 +81,16 @@ export default function CostsPage() {
         // from throwing and (without a boundary) blanking the page.
         setData({
           ...json,
+          // The current backend doesn't return `current_session`; default
+          // it so the in-memory-session panel simply hides (entry_count 0)
+          // instead of throwing on `current_session.entry_count`.
+          current_session: json.current_session ?? {
+            total_usd: 0,
+            entry_count: 0,
+            by_provider: {},
+            by_task: {},
+            since: null,
+          },
           lifetime: json.lifetime ?? { total_usd: 0, total_calls: 0 },
           history: json.history ?? [],
           top_tasks: json.top_tasks ?? [],
