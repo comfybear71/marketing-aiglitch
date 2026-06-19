@@ -100,11 +100,11 @@ export function ContactsClient() {
     return (
       <div
         style={{
-          background: "#fef2f2",
-          border: "1px solid #fecaca",
+          background: "rgba(127,29,29,0.2)",
+          border: "1px solid rgba(248,113,113,0.4)",
           borderRadius: 8,
           padding: 16,
-          color: "#991b1b",
+          color: "#fca5a5",
           fontSize: 14,
         }}
       >
@@ -118,11 +118,11 @@ export function ContactsClient() {
       {err && (
         <div
           style={{
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
+            background: "rgba(127,29,29,0.2)",
+            border: "1px solid rgba(248,113,113,0.4)",
             borderRadius: 8,
             padding: 12,
-            color: "#991b1b",
+            color: "#fca5a5",
             marginBottom: 16,
             fontSize: 14,
           }}
@@ -169,20 +169,20 @@ export function ContactsClient() {
 
       <div
         style={{
-          background: "#fff",
-          border: "1px solid #e5e7eb",
-          borderRadius: 8,
+          background: "#111827", // gray-900
+          border: "1px solid #1f2937", // gray-800
+          borderRadius: 12,
           overflow: "hidden",
         }}
       >
         {initialContacts.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#6b7280" }}>
+          <div style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>
             No contacts yet. Click <strong>+ New contact</strong> above.
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
-              <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+              <tr style={{ background: "#1f2937", borderBottom: "1px solid #374151" }}>
                 <th style={th}>Name</th>
                 <th style={th}>Email</th>
                 <th style={th}>Company</th>
@@ -210,7 +210,7 @@ export function ContactsClient() {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={c.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                  <tr key={c.id} style={{ borderBottom: "1px solid #1f2937" }}>
                     <td style={td}>{c.name ?? <em style={{ color: "#9ca3af" }}>—</em>}</td>
                     <td style={td}>
                       <code style={{ fontSize: 13 }}>{c.email}</code>
@@ -246,8 +246,8 @@ export function ContactsClient() {
                         disabled={isPending}
                         style={{
                           ...btnGhost(isPending),
-                          borderColor: "#fecaca",
-                          color: "#b91c1c",
+                          borderColor: "rgba(248,113,113,0.4)",
+                          color: "#f87171",
                           marginLeft: 4,
                         }}
                       >
@@ -323,9 +323,9 @@ function ContactForm({
   return (
     <div
       style={{
-        background: "#f9fafb",
-        border: mode === "create" ? "1px solid #e5e7eb" : undefined,
-        borderRadius: mode === "create" ? 8 : undefined,
+        background: mode === "create" ? "#111827" : "#0b1220",
+        border: mode === "create" ? "1px solid #1f2937" : undefined,
+        borderRadius: mode === "create" ? 12 : undefined,
         padding: 16,
         marginBottom: mode === "create" ? 16 : 0,
       }}
@@ -398,7 +398,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
           display: "block",
           fontSize: 12,
           fontWeight: 600,
-          color: "#374151",
+          color: "#9ca3af",
           marginBottom: 4,
         }}
       >
@@ -415,7 +415,7 @@ const th: React.CSSProperties = {
   textAlign: "left",
   padding: "10px 12px",
   fontWeight: 600,
-  color: "#374151",
+  color: "#9ca3af", // gray-400
   fontSize: 12,
   textTransform: "uppercase",
   letterSpacing: 0.3,
@@ -423,20 +423,24 @@ const th: React.CSSProperties = {
 const td: React.CSSProperties = {
   padding: "10px 12px",
   verticalAlign: "top",
+  color: "#e5e7eb", // gray-200 — explicit so cells aren't white-on-dark/invisible
 };
 const input: React.CSSProperties = {
   width: "100%",
   padding: "8px 10px",
-  border: "1px solid #d1d5db",
+  border: "1px solid #374151", // gray-700
   borderRadius: 6,
   fontSize: 14,
   boxSizing: "border-box",
   fontFamily: "inherit",
+  background: "#1f2937", // gray-800
+  color: "#ffffff",
 };
 const tagPill: React.CSSProperties = {
   display: "inline-block",
-  background: "#e0e7ff",
-  color: "#3730a3",
+  background: "rgba(168,85,247,0.15)", // purple-500/15
+  color: "#d8b4fe", // purple-300
+  border: "1px solid rgba(168,85,247,0.3)",
   padding: "2px 8px",
   borderRadius: 999,
   fontSize: 11,
@@ -446,19 +450,19 @@ const tagPill: React.CSSProperties = {
 const btnPrimary = (disabled: boolean): React.CSSProperties => ({
   padding: "8px 14px",
   border: "none",
-  borderRadius: 6,
-  background: disabled ? "#9ca3af" : "#111",
+  borderRadius: 8,
+  background: disabled ? "#4b5563" : "#9333ea", // gray-600 / purple-600
   color: "#fff",
   fontSize: 14,
-  fontWeight: 500,
+  fontWeight: 600,
   cursor: disabled ? "not-allowed" : "pointer",
 });
 const btnGhost = (disabled: boolean): React.CSSProperties => ({
   padding: "8px 14px",
-  border: "1px solid #d1d5db",
-  borderRadius: 6,
-  background: "#fff",
-  color: "#111",
+  border: "1px solid #374151", // gray-700
+  borderRadius: 8,
+  background: "#1f2937", // gray-800
+  color: "#e5e7eb",
   fontSize: 14,
   fontWeight: 500,
   cursor: disabled ? "not-allowed" : "pointer",
