@@ -73,13 +73,36 @@ export default function CostsPage() {
     setError("");
     try {
       const res = await fetch(`/api/admin/costs?days=${days}`);
-      if (res.ok) {
-        setData(await res.json());
+      const json = (await res.json().catch(() => null)) as (CostData & { error?: string }) | null;
+      if (res.ok && json) {
+        // Defensive normalization — the render touches many nested fields,
+        // so guarantee the top-level arrays/objects exist even if the
+        // backend ever returns a partial payload. Stops one missing field
+        // from throwing and (without a boundary) blanking the page.
+        setData({
+          ...json,
+          lifetime: json.lifetime ?? { total_usd: 0, total_calls: 0 },
+          history: json.history ?? [],
+          top_tasks: json.top_tasks ?? [],
+          provider_totals: json.provider_totals ?? [],
+          daily_totals: json.daily_totals ?? [],
+          credit_balances: json.credit_balances ?? {
+            anthropic: { budget: null, spent: 0, remaining: null },
+            xai: { budget: null, spent: 0, remaining: null },
+          },
+          vercel: json.vercel ?? { available: false },
+        });
       } else {
-        setError("Failed to load cost data");
+        // Surface the real backend message + status so a backend-side
+        // failure is diagnosable (vs. a generic "Failed to load").
+        setError(
+          json?.error
+            ? `Failed to load cost data: ${json.error}`
+            : `Failed to load cost data (HTTP ${res.status})`,
+        );
       }
-    } catch {
-      setError("Network error");
+    } catch (e) {
+      setError(e instanceof Error ? `Network error: ${e.message}` : "Network error");
     }
     setLoading(false);
   }, [days]);
