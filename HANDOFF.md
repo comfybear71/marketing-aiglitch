@@ -7,6 +7,60 @@
 
 ## Session log (newest first)
 
+### 2026-06-18 — session 3: migrate all remaining admin tabs
+
+**Status:** All 9 remaining tabs migrated from admin-aiglitch into the
+sidebar. Every nav entry now routes to real (ported) UI. Ad Creator
+bugs parked at the user's request — this session was breadth, not depth.
+
+**This session shipped (roadmap items 6–14), one atomic commit per tab:**
+- Sponsors (item 6) — proof-of-pattern CRUD.
+- AI Costs (item 7) — ported; see caveat below.
+- Events (item 8) — ported; see caveat below.
+- Contact (item 9) — ported AND fixed (see below).
+- Emails (item 10), X Growth (item 11), Spec Ads (item 12),
+  Merch Studio (item 13), Ad Campaigns (item 14).
+- Shared libs copied from admin: `sponsor-packages.ts`,
+  `consumer-url.ts`, `marketplace.ts`, `ai/costs.ts`, `ai/types.ts`.
+
+**Migration pattern (for future tabs / trading-aiglitch):**
+- Each admin page was a client component that only read `authenticated`
+  from AdminContext. Dropped that dependency (replaced with
+  `const authenticated = true`) since marketing pages are server-gated
+  by the cookie. No AdminContext port needed.
+- Each tab = `page.tsx` (server gate: cookie check → redirect /login)
+  + `<slug>-client.tsx` (the ported UI). API calls are unchanged —
+  the `next.config.ts` wildcard already proxies `/api/admin/*`.
+- Admin slug → marketing slug remaps: costs→ai-costs, merch→merch-studio,
+  campaigns→ad-campaigns, contacts→contact.
+
+**Contact bug fix:** the admin /contacts page fetched the list
+server-side via `apiFetch` to localhost, which doesn't proxy to
+api.aiglitch.app in production — the "Couldn't load contacts" error.
+Rewrote it to fetch client-side (same-origin, proxied) and re-fetch
+after every create/edit/delete. This is the only one of the three
+"known-broken" pages whose bug was in the frontend.
+
+**⚠️ Caveats / next session:**
+- **AI Costs + Events**: both fetch client-side already (proxied
+  correctly), so their reported breakage is backend-side. They are
+  migrated faithfully but will stay broken until the `/api/admin/costs`
+  and `/api/admin/events` routes are fixed in **aiglitch-api** (a
+  separate repo, outside this session's scope). Needs an aiglitch-api
+  session — investigate those route handlers there.
+- **Ad Creator bugs** (from session 2) still parked — revisit when
+  ready.
+- Migrated pages keep their original admin styling (some use light-
+  theme inline styles, e.g. Contact's white table). Functional first;
+  a visual polish pass to match the dark sidebar theme could be a
+  future session.
+- ROADMAP item 15 (`/prompts`) is still TBD and not in the marketing
+  nav.
+
+**Tag:** `v0.3.0` (suggested)
+
+---
+
 ### 2026-06-18 — session 2: Ad Creator UI
 
 **Status:** Ad Creator tab is live and fully wired to the v1.53.0
