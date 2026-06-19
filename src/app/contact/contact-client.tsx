@@ -26,10 +26,16 @@ export interface Contact {
   updated_at: string;
 }
 
+// The backend's GET /api/admin/contacts returns the list at the top
+// level — { total, contacts, all_tags } — NOT wrapped in { ok, data }.
+// (The admin version assumed the wrapper, which is why it always showed
+// "Couldn't load contacts" even on a successful 200.) Errors come back
+// as a non-200 with { error }.
 interface ContactsResponse {
-  ok: boolean;
+  total?: number;
+  contacts?: Contact[];
+  all_tags?: string[];
   error?: string;
-  data?: { total: number; contacts: Contact[]; all_tags: string[] };
 }
 
 export function ContactsClient() {
@@ -47,12 +53,12 @@ export function ContactsClient() {
     try {
       const res = await fetch("/api/admin/contacts", { credentials: "include" });
       const data = (await res.json()) as ContactsResponse;
-      if (!res.ok || !data.ok) {
+      if (!res.ok) {
         setLoadError(data.error || `Couldn't load contacts (${res.status})`);
         return;
       }
-      setContacts(data.data?.contacts ?? []);
-      setAllTags(data.data?.all_tags ?? []);
+      setContacts(data.contacts ?? []);
+      setAllTags(data.all_tags ?? []);
       setLoadError(null);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load contacts");

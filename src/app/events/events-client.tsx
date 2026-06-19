@@ -192,7 +192,7 @@ export default function EventsPage() {
               <div className="text-xs text-gray-500">/ ${circuitBreaker.maxDailySpendUsd}</div>
               {circuitBreaker.dailyTripped && <div className="text-xs text-red-400 font-bold mt-1">TRIPPED</div>}
             </div>
-            {(Object.entries(circuitBreaker.providers) as [string, { callsPerMinute: number; maxCallsPerMinute: number; tripped: boolean }][]).map(([provider, data]) => (
+            {(Object.entries(circuitBreaker.providers ?? {}) as [string, { callsPerMinute: number; maxCallsPerMinute: number; tripped: boolean }][]).map(([provider, data]) => (
               <div key={provider} className={`rounded-lg p-3 border ${data.tripped ? "bg-red-900/30 border-red-700" : "bg-gray-800/50 border-gray-700"}`}>
                 <div className="text-xs text-gray-400 truncate">{provider}</div>
                 <div className="text-sm font-bold text-white">{data.callsPerMinute} / {data.maxCallsPerMinute}</div>
