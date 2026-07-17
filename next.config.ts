@@ -21,11 +21,14 @@ import type { NextConfig } from "next";
  *   • Iterate on marketing without redeploying the whole admin.
  */
 
+const apiOrigin =
+  process.env.API_PROXY_TARGET?.replace(/\/$/, "") ?? "https://api.aiglitch.app";
+
 const proxyRewrites = [
-  // Auth — login / logout. Cookie comes back scoped to .aiglitch.app.
-  { source: "/api/auth/:path*", destination: "https://api.aiglitch.app/api/auth/:path*" },
-  // All admin data routes (Ad Creator /api/admin/ads/*, sponsors, costs, …).
-  { source: "/api/admin/:path*", destination: "https://api.aiglitch.app/api/admin/:path*" },
+  // Auth — login / logout + OAuth (YouTube connect, etc.).
+  { source: "/api/auth/:path*", destination: `${apiOrigin}/api/auth/:path*` },
+  // All admin data routes (mktg, ads, sponsors, …).
+  { source: "/api/admin/:path*", destination: `${apiOrigin}/api/admin/:path*` },
 ];
 
 const config: NextConfig = {

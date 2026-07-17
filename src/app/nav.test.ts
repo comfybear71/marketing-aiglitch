@@ -2,13 +2,14 @@ import { describe, it, expect } from "vitest";
 import { NAV, DEFAULT_SLUG, navItemForSlug } from "./nav";
 
 describe("sidebar nav config", () => {
-  it("has the 10 planned entries", () => {
-    expect(NAV).toHaveLength(10);
+  it("has the 11 planned entries", () => {
+    expect(NAV).toHaveLength(11);
   });
 
   it("lists the exact planned slugs in order", () => {
     expect(NAV.map((i) => i.slug)).toEqual([
       "ad-creator",
+      "marketing",
       "sponsors",
       "ai-costs",
       "events",

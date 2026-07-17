@@ -21,6 +21,7 @@ export interface NavItem {
 
 export const NAV: NavItem[] = [
   { slug: "ad-creator", label: "Ad Creator", icon: "\u{1F3AC}" },     // 🎬 — THE big new tab (session 2)
+  { slug: "marketing", label: "Social Platforms", icon: "\u{1F4F1}" }, // 📱 — YouTube API compliance + platform connect
   { slug: "sponsors", label: "Sponsors", icon: "\u{1F91D}" },         // 🤝 — moves from admin (session 3)
   { slug: "ai-costs", label: "AI Costs", icon: "\u{1F4B0}" },         // 💰
   { slug: "events", label: "Events", icon: "\u{1F3AD}" },             // 🎭
