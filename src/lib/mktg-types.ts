@@ -7,11 +7,24 @@ export interface MktPlatformAccount {
   is_active: boolean;
 }
 
-export interface MktPlatformBreakdown {
+export interface EnrichedPlatformBreakdown {
   platform: string;
   posted: number;
+  queued: number;
+  failed: number;
   impressions: number;
   likes: number;
+  views: number;
+  shares: number;
+  comments: number;
+  lastPostedAt: string | null;
+  lastMetricsSync: string | null;
+  followers: number | null;
+  successRate: number;
+  primaryLabel: string;
+  primaryValue: number | null;
+  secondaryMetrics: Array<{ label: string; value: number | null }>;
+  postMetricsSupported: boolean;
 }
 
 export interface MarketingStats {
@@ -21,5 +34,6 @@ export interface MarketingStats {
   totalImpressions: number;
   totalLikes: number;
   totalViews: number;
-  platformBreakdown?: MktPlatformBreakdown[];
+  successRate: number;
+  platformBreakdown?: EnrichedPlatformBreakdown[];
 }

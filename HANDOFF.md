@@ -7,6 +7,16 @@
 
 ## Session log (newest first)
 
+### 2026-07-22 — Admin page signed off; marketing is next
+
+**Cross-repo:** User confirmed admin-aiglitch tab strip is complete for this phase. **Next work happens here** (`marketing-aiglitch`) — polish, broken-page fixes, Ad Creator depth.
+
+**Not started (logged in `aiglitch-api/docs/ROADMAP.md`):**
+- `trading-aiglitch` @ `trade.aiglitch.app` — Trading + NFT Art tabs, Jupiter DEX, 5K SOL treasury gate
+- **Trade button** on admin sidebar (external link, same as Marketing) — add only when trading app is live
+
+---
+
 ### 2026-06-18 — session 3: migrate all remaining admin tabs
 
 **Status:** All 9 remaining tabs migrated from admin-aiglitch into the

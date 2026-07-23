@@ -7,14 +7,33 @@ import {
   type YouTubeUploadForm,
 } from "@/components/YouTubeUploadModal";
 import { CONSUMER_URL } from "@/lib/consumer-url";
-import type { MarketingStats, MktPlatformAccount } from "@/lib/mktg-types";
+import type {
+  EnrichedPlatformBreakdown,
+  MarketingStats,
+  MktPlatformAccount,
+} from "@/lib/mktg-types";
 
 const PLATFORMS = [
   { id: "x", name: "X (Twitter)", emoji: "𝕏", border: "border-gray-600" },
+  { id: "telegram", name: "Telegram", emoji: "✈️", border: "border-sky-500" },
   { id: "instagram", name: "Instagram", emoji: "📸", border: "border-pink-500" },
   { id: "facebook", name: "Facebook", emoji: "📘", border: "border-blue-500" },
   { id: "youtube", name: "YouTube", emoji: "▶️", border: "border-red-500" },
 ] as const;
+
+function formatMetric(value: number | null | undefined): string {
+  if (value == null) return "—";
+  return value.toLocaleString();
+}
+
+function formatSyncTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return null;
+  }
+}
 
 const YT_ERROR_MESSAGES: Record<string, string> = {
   unauthorized: "Admin login required before connecting YouTube.",
@@ -30,6 +49,7 @@ export default function MarketingClient() {
   const [accounts, setAccounts] = useState<MktPlatformAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [syncPhase, setSyncPhase] = useState<"idle" | "running" | "refreshing">("idle");
 
   const [ytModalOpen, setYtModalOpen] = useState(false);
   const [ytSubmitting, setYtSubmitting] = useState(false);
@@ -42,6 +62,7 @@ export default function MarketingClient() {
   } | null>(null);
   const [simpleMessage, setSimpleMessage] = useState("");
   const [simpleSubmitting, setSimpleSubmitting] = useState(false);
+  const [syncingMetrics, setSyncingMetrics] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -211,6 +232,79 @@ export default function MarketingClient() {
     setSimpleModal({ platform, mediaType });
   };
 
+  const syncMetrics = async () => {
+    setSyncingMetrics(true);
+    setSyncPhase("running");
+    setBanner(null);
+    try {
+      const res = await fetch("/api/admin/mktg?action=collect_metrics", {
+        credentials: "include",
+      });
+      const raw = await res.text();
+      let data: {
+        ok?: boolean;
+        started?: boolean;
+        message?: string;
+        error?: string;
+        updated?: number;
+      } = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        setBanner({
+          tone: "err",
+          text: `Sync failed (HTTP ${res.status}): ${raw.slice(0, 160) || "empty response"}`,
+        });
+        setSyncingMetrics(false);
+        setSyncPhase("idle");
+        return;
+      }
+      if (!res.ok || !data.ok) {
+        setBanner({
+          tone: "err",
+          text: data.error || `Sync failed (HTTP ${res.status})`,
+        });
+        setSyncingMetrics(false);
+        setSyncPhase("idle");
+        return;
+      }
+      if (data.started) {
+        setBanner({
+          tone: "ok",
+          text:
+            "Pulling metrics from X, Telegram, Instagram, Facebook, and YouTube — refresh in ~30–60 seconds.",
+        });
+        window.setTimeout(async () => {
+          setSyncPhase("refreshing");
+          await fetchData();
+          setSyncPhase("idle");
+          setBanner({
+            tone: "ok",
+            text: "Metrics refresh complete — check each platform card for updated numbers.",
+          });
+        }, 45_000);
+      } else {
+        setBanner({
+          tone: "ok",
+          text: `Metrics synced — ${data.updated ?? 0} posts updated.`,
+        });
+        await fetchData();
+        setSyncPhase("idle");
+      }
+    } catch (err) {
+      setBanner({
+        tone: "err",
+        text: err instanceof Error ? err.message : "Metrics sync request failed.",
+      });
+      setSyncPhase("idle");
+    }
+    setSyncingMetrics(false);
+  };
+
+  const breakdownByPlatform = new Map<string, EnrichedPlatformBreakdown>(
+    (stats?.platformBreakdown ?? []).map((row) => [row.platform, row]),
+  );
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -222,13 +316,23 @@ export default function MarketingClient() {
             Connect accounts and test cross-platform posting (admin only).
           </p>
         </div>
-        <button
-          type="button"
-          onClick={fetchData}
-          className="px-3 py-2 bg-gray-800 text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-700"
-        >
-          Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={syncMetrics}
+            disabled={syncingMetrics}
+            className="px-3 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg text-xs font-bold hover:bg-cyan-500/30 disabled:opacity-50"
+          >
+            {syncingMetrics ? "Syncing…" : "Sync metrics"}
+          </button>
+          <button
+            type="button"
+            onClick={fetchData}
+            className="px-3 py-2 bg-gray-800 text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-700"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {banner && (
@@ -243,6 +347,43 @@ export default function MarketingClient() {
         </div>
       )}
 
+      {syncPhase !== "idle" && (
+        <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-4 py-3">
+          <p className="text-[10px] uppercase tracking-wide text-cyan-400/80 mb-1 font-bold">
+            {syncPhase === "refreshing"
+              ? "Reloading dashboard…"
+              : "Checking platform APIs"}
+          </p>
+          <p className="text-[11px] text-gray-400 mb-2">
+            {syncPhase === "refreshing"
+              ? "Pulling fresh numbers into each card."
+              : "X · Telegram · Instagram · Facebook · YouTube — usually 30–60 seconds."}
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {PLATFORMS.map((p) => (
+              <div
+                key={p.id}
+                className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] ${
+                  syncPhase === "refreshing"
+                    ? "border-green-500/40 bg-green-500/10 text-green-300"
+                    : "border-cyan-500/30 bg-gray-900/60 text-cyan-100"
+                }`}
+              >
+                <span>{p.emoji}</span>
+                <span className="truncate">{p.name.split(" ")[0]}</span>
+                <span
+                  className={`ml-auto shrink-0 ${
+                    syncPhase === "running" ? "animate-pulse" : ""
+                  }`}
+                >
+                  {syncPhase === "refreshing" ? "✓" : "…"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-16 text-gray-500">
           <div className="text-4xl animate-pulse mb-2">📡</div>
@@ -250,32 +391,49 @@ export default function MarketingClient() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { label: "Posted", value: stats?.totalPosted ?? 0, color: "text-green-400" },
-              { label: "Queued", value: stats?.totalQueued ?? 0, color: "text-yellow-400" },
               { label: "Failed", value: stats?.totalFailed ?? 0, color: "text-red-400" },
-              { label: "Impressions", value: stats?.totalImpressions ?? 0, color: "text-cyan-400" },
-              { label: "Likes", value: stats?.totalLikes ?? 0, color: "text-pink-400" },
-              { label: "Views", value: stats?.totalViews ?? 0, color: "text-purple-400" },
+              { label: "Queued", value: stats?.totalQueued ?? 0, color: "text-yellow-400" },
+              {
+                label: "Success rate",
+                value: `${stats?.successRate ?? 100}%`,
+                color: "text-cyan-400",
+                raw: true,
+              },
             ].map((s) => (
               <div
                 key={s.label}
                 className="bg-gray-900/50 border border-gray-800 rounded-lg p-3 text-center"
               >
                 <div className={`text-lg font-bold ${s.color}`}>
-                  {s.value.toLocaleString()}
+                  {"raw" in s && s.raw
+                    ? s.value
+                    : typeof s.value === "number"
+                      ? s.value.toLocaleString()
+                      : s.value}
                 </div>
                 <div className="text-[10px] text-gray-500">{s.label}</div>
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <p className="text-[10px] text-gray-600">
+            Engagement totals (mixed sources): X impressions{" "}
+            {formatMetric(stats?.totalImpressions)} · all-platform views{" "}
+            {formatMetric(stats?.totalViews)} · likes {formatMetric(stats?.totalLikes)}.
+            Click <strong className="text-gray-500">Sync metrics</strong> to pull fresh
+            numbers from platform APIs (last 30 days of posts).
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {PLATFORMS.map((p) => {
               const account = accounts.find((a) => a.platform === p.id);
-              const pStats = stats?.platformBreakdown?.find((s) => s.platform === p.id);
+              const pStats = breakdownByPlatform.get(p.id);
               const isYoutube = p.id === "youtube";
+              const isTelegram = p.id === "telegram";
+              const syncLabel = formatSyncTime(pStats?.lastMetricsSync);
 
               return (
                 <div
@@ -312,9 +470,55 @@ export default function MarketingClient() {
                     </p>
                   )}
 
-                  <div className="flex gap-3 text-[10px] text-gray-500 mb-3">
-                    <span>Posted {pStats?.posted ?? 0}</span>
-                    <span>Impressions {(pStats?.impressions ?? 0).toLocaleString()}</span>
+                  <div className="grid grid-cols-3 gap-2 text-[10px] mb-3">
+                    <div className="bg-gray-800/50 rounded-lg p-2 text-center">
+                      <div className="text-green-400 font-bold">{pStats?.posted ?? 0}</div>
+                      <div className="text-gray-500">Posted</div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-2 text-center">
+                      <div className="text-red-400 font-bold">{pStats?.failed ?? 0}</div>
+                      <div className="text-gray-500">Failed</div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-2 text-center">
+                      <div className="text-cyan-400 font-bold">
+                        {pStats ? `${pStats.successRate}%` : "—"}
+                      </div>
+                      <div className="text-gray-500">Success</div>
+                    </div>
+                  </div>
+
+                  <div className="mb-3 p-2 rounded-lg bg-gray-800/40 border border-gray-700/80">
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wide">
+                      {pStats?.primaryLabel ?? "Engagement"}
+                    </div>
+                    <div className="text-xl font-black text-white">
+                      {formatMetric(pStats?.primaryValue)}
+                    </div>
+                    {pStats?.secondaryMetrics?.length ? (
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[10px] text-gray-400">
+                        {pStats.secondaryMetrics.map((m) => (
+                          <span key={m.label}>
+                            {m.label}: {formatMetric(m.value)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {isTelegram && (
+                      <p className="text-[10px] text-gray-500 mt-2">
+                        Post-level views aren&apos;t available via Telegram Bot API — subscriber
+                        count only.
+                      </p>
+                    )}
+                    {syncPhase === "running" && (
+                      <p className="text-[10px] text-cyan-400/90 mt-2 animate-pulse">
+                        Checking {p.name.split(" ")[0]} API…
+                      </p>
+                    )}
+                    {syncLabel && pStats?.postMetricsSupported && syncPhase === "idle" && (
+                      <p className="text-[10px] text-gray-600 mt-2">
+                        Metrics synced {syncLabel}
+                      </p>
+                    )}
                   </div>
 
                   {isYoutube && (
@@ -372,6 +576,14 @@ export default function MarketingClient() {
                         className="w-full px-3 py-2 bg-purple-500/20 text-purple-300 rounded-lg text-xs font-bold hover:bg-purple-500/30 disabled:opacity-40"
                       >
                         Upload test video
+                      </button>
+                    ) : isTelegram ? (
+                      <button
+                        type="button"
+                        onClick={() => openSimpleModal(p.id)}
+                        className="w-full px-3 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-xs font-bold hover:bg-yellow-500/30"
+                      >
+                        Test channel post
                       </button>
                     ) : (
                       <>
