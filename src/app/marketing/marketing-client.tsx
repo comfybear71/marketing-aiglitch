@@ -35,6 +35,16 @@ function formatSyncTime(iso: string | null | undefined): string | null {
   }
 }
 
+/** Fallback when API returns raw breakdown without successRate (pre-v1.57). */
+function computeSuccessRate(posted: number, failed: number): number {
+  const attempts = posted + failed;
+  return attempts > 0 ? Math.round((posted / attempts) * 1000) / 10 : 100;
+}
+
+function platformSuccessRate(row: EnrichedPlatformBreakdown): number {
+  return row.successRate ?? computeSuccessRate(row.posted, row.failed);
+}
+
 const YT_ERROR_MESSAGES: Record<string, string> = {
   unauthorized: "Admin login required before connecting YouTube.",
   no_code: "Google did not return an authorization code.",
@@ -398,7 +408,7 @@ export default function MarketingClient() {
               { label: "Queued", value: stats?.totalQueued ?? 0, color: "text-yellow-400" },
               {
                 label: "Success rate",
-                value: `${stats?.successRate ?? 100}%`,
+                value: `${stats?.successRate ?? computeSuccessRate(stats?.totalPosted ?? 0, stats?.totalFailed ?? 0)}%`,
                 color: "text-cyan-400",
                 raw: true,
               },
@@ -481,7 +491,7 @@ export default function MarketingClient() {
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-2 text-center">
                       <div className="text-cyan-400 font-bold">
-                        {pStats ? `${pStats.successRate}%` : "—"}
+                        {pStats ? `${platformSuccessRate(pStats)}%` : "—"}
                       </div>
                       <div className="text-gray-500">Success</div>
                     </div>
