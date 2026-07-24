@@ -5,6 +5,7 @@ import { COST_TABLE } from "@/lib/ai/costs";
 
 // Map raw provider keys to display groups
 const PROVIDER_GROUPS: Record<string, { label: string; color: string }> = {
+  cursor:              { label: "Cursor (IDE & agents)", color: "#22d3ee" },
   claude:              { label: "Claude (Anthropic)", color: "#a78bfa" },
   "grok-text":         { label: "xAI Grok Text",     color: "#60a5fa" },
   "grok-video":        { label: "xAI Grok Video",    color: "#3b82f6" },
@@ -52,7 +53,7 @@ interface CostData {
   top_tasks: { task: string; provider: string; total_usd: number; count: number }[];
   provider_totals: { provider: string; total_usd: number; count: number }[];
   daily_totals: { date: string; total_usd: number; count: number }[];
-  credit_balances: { anthropic: CreditBalance; xai: CreditBalance };
+  credit_balances: { anthropic: CreditBalance; xai: CreditBalance; cursor: CreditBalance };
   vercel: {
     available: boolean;
     usage?: { period: string; bandwidth_gb: number; builds: number; serverless_invocations: number; estimated_cost_usd: number };
@@ -99,6 +100,7 @@ export default function CostsPage() {
           credit_balances: json.credit_balances ?? {
             anthropic: { budget: null, spent: 0, remaining: null },
             xai: { budget: null, spent: 0, remaining: null },
+            cursor: { budget: null, spent: 0, remaining: null },
           },
           vercel: json.vercel ?? { available: false },
         });
@@ -214,6 +216,63 @@ export default function CostsPage() {
         </div>
       </div>
 
+      {/* Cursor — primary dev tool (not in ai_cost_log) */}
+      <div className="bg-gray-900 border border-cyan-500/30 rounded-xl p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-cyan-300">Cursor — build &amp; test</h3>
+            <p className="text-gray-500 text-xs mt-1 max-w-xl">
+              IDE + agent usage is billed by Cursor separately from AIG!itch model API costs
+              (Grok, Claude, etc.). Check usage and invoices in Cursor settings.
+            </p>
+          </div>
+          <a
+            href="https://cursor.com/settings"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg text-xs font-bold hover:bg-cyan-500/30 shrink-0"
+          >
+            Open Cursor billing
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
+        {data.credit_balances.cursor.budget != null && (
+          <div className="mt-4 bg-gray-800/50 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-bold text-white">Monthly Cursor budget</span>
+              <span className={`text-lg font-black ${
+                (data.credit_balances.cursor.remaining ?? 0) < 5 ? "text-red-400"
+                  : (data.credit_balances.cursor.remaining ?? 0) < 25 ? "text-yellow-400"
+                  : "text-green-400"
+              }`}>
+                ${data.credit_balances.cursor.remaining?.toFixed(2) ?? "—"} left
+              </span>
+            </div>
+            {(() => {
+              const bal = data.credit_balances.cursor;
+              const pctUsed = bal.budget! > 0 ? (bal.spent / bal.budget!) * 100 : 0;
+              const barColor = pctUsed > 90 ? "#ef4444" : pctUsed > 70 ? "#f59e0b" : "#22d3ee";
+              return (
+                <>
+                  <div className="w-full h-2.5 bg-gray-700 rounded-full overflow-hidden mb-2">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(pctUsed, 100)}%`, backgroundColor: barColor }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Spent: ${bal.spent.toFixed(2)} (from CURSOR_MONTHLY_SPENT)</span>
+                    <span>Budget: ${bal.budget!.toFixed(2)}</span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
       {/* Credit Balances */}
       {(data.credit_balances.anthropic.budget != null || data.credit_balances.xai.budget != null) && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -251,7 +310,10 @@ export default function CostsPage() {
               );
             })}
           </div>
-          <p className="text-gray-600 text-xs mt-2">Set ANTHROPIC_MONTHLY_BUDGET / XAI_MONTHLY_BUDGET env vars to configure</p>
+          <p className="text-gray-600 text-xs mt-2">
+            Set ANTHROPIC_MONTHLY_BUDGET / XAI_MONTHLY_BUDGET on the API. Cursor:
+            CURSOR_MONTHLY_BUDGET + CURSOR_MONTHLY_SPENT (update spent from Cursor dashboard).
+          </p>
         </div>
       )}
 
@@ -260,6 +322,7 @@ export default function CostsPage() {
         <h3 className="text-base font-bold mb-3 text-amber-400">Quick Links — Billing &amp; Credits</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {[
+            { label: "Cursor (IDE & agents)", url: "https://cursor.com/settings", icon: "✨", color: "from-cyan-600 to-blue-600" },
             { label: "Anthropic (Claude)", url: "https://console.anthropic.com/settings/billing", icon: "🧠", color: "from-purple-600 to-violet-600" },
             { label: "xAI (Grok)", url: "https://console.x.ai/billing", icon: "🤖", color: "from-blue-600 to-cyan-600" },
             { label: "Replicate", url: "https://replicate.com/account/billing", icon: "🎨", color: "from-emerald-600 to-green-600" },
@@ -464,7 +527,9 @@ export default function CostsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {Object.entries(COST_TABLE).map(([key, rates]) => {
             const label = PROVIDER_GROUPS[key]?.label || key;
-            const rateStr = "perMInputTokens" in rates
+            const rateStr = key === "cursor"
+              ? "Subscription — track via CURSOR_MONTHLY_* env"
+              : "perMInputTokens" in rates
               ? `$${rates.perMInputTokens}/M in, $${rates.perMOutputTokens}/M out`
               : "perSecond" in rates
               ? `$${rates.perSecond}/sec`

@@ -22,6 +22,9 @@ export const COST_TABLE = {
   "grok-text-nonreasoning": { perMInputTokens: 1.25, perMOutputTokens: 2.50 },
   "grok-multi-agent":       { perMInputTokens: 1.25, perMOutputTokens: 2.50 },
 
+  // Cursor (manual — not logged to ai_cost_log)
+  cursor:           { perCall: 0 },
+
   // Anthropic / Claude
   "claude":           { perMInputTokens: 3.00, perMOutputTokens: 15.00 }, // Sonnet 4
 
