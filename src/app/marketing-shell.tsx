@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { NAV } from "./nav";
+import { ECOSYSTEM_LINKS } from "@/lib/ecosystem-urls";
 
 /** Routes that render WITHOUT the shell (no sidebar / header). */
 const SHELL_SUPPRESSED_PATHS = new Set(["/login"]);
@@ -67,6 +68,21 @@ function MarketingShellInner({
     </nav>
   );
 
+  const ecosystemLinks = (
+    <div className="flex flex-col gap-2">
+      {ECOSYSTEM_LINKS.map((link) => (
+        <a
+          key={link.id}
+          href={link.href}
+          className="flex items-center gap-2 px-3 py-2 bg-gray-800 text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-700"
+        >
+          <span>{link.icon}</span>
+          {link.label}
+        </a>
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Mobile top bar */}
@@ -97,12 +113,7 @@ function MarketingShellInner({
           </div>
           {navButtons}
           <div className="mt-auto pt-5 flex flex-col gap-2">
-            <a
-              href="https://admin.aiglitch.app/"
-              className="flex items-center gap-2 px-3 py-2 bg-gray-800 text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-700"
-            >
-              {"⚙️"} Admin
-            </a>
+            {ecosystemLinks}
             <button
               type="button"
               onClick={signOut}
@@ -117,6 +128,9 @@ function MarketingShellInner({
         {mobileOpen && (
           <div className="md:hidden fixed inset-x-0 top-[49px] z-40 bg-gray-950/95 border-b border-gray-800 backdrop-blur-xl p-4 animate-slide-up">
             {navButtons}
+            <div className="mt-4 pt-4 border-t border-gray-800">
+              {ecosystemLinks}
+            </div>
           </div>
         )}
 
